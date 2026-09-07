@@ -1,0 +1,44 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D97706" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#451A03" flood-opacity="0.2" />
+    </filter>
+  </defs>
+
+  <!-- Modern Gastro Icon Badge -->
+  <g transform="translate(15, 12)" filter="url(#shadow)">
+    <!-- Rounded Container -->
+    <rect x="0" y="0" width="76" height="76" rx="20" fill="url(#brandGrad)" />
+    
+    <!-- Cloche / Plate outline in White -->
+    <!-- Plate base line -->
+    <rect x="16" y="56" width="44" height="4" rx="2" fill="#FFFFFF"/>
+    
+    <!-- Cloche dome -->
+    <path d="M 22 52 C 22 34 54 34 54 52 Z" fill="#FFFBEB"/>
+    
+    <!-- Cloche handle ball -->
+    <circle cx="38" cy="30" r="4.5" fill="#FFFFFF"/>
+    <path d="M 38 34.5 L 38 38" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Sparkle star top right -->
+    <path d="M 58 20 Q 58 26 64 26 Q 58 26 58 32 Q 58 26 52 26 Q 58 26 58 20 Z" fill="#FDE68A"/>
+  </g>
+
+  <!-- Typography Brand -->
+  <g transform="translate(108, 24)">
+    <text x="0" y="14" font-family="'Segoe UI', 'Outfit', sans-serif" font-size="12" font-weight="800" fill="#E11D48" letter-spacing="2.5">
+      SISTEMA POS &amp; CONTROL
+    </text>
+    <text x="0" y="46" font-family="'Outfit', 'Montserrat', 'Segoe UI', sans-serif" font-size="33" font-weight="900" fill="#1E293B" letter-spacing="-0.5">
+      Gastro<tspan fill="#D97706">POS</tspan>
+    </text>
+    <text x="1" y="64" font-family="'Quicksand', 'Segoe UI', sans-serif" font-size="11" font-weight="600" fill="#64748B" letter-spacing="0.3">
+      Control de Mesas, Ventas e Inventario
+    </text>
+  </g>
+</svg>
