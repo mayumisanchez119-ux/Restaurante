@@ -1,4 +1,4 @@
-﻿// ==========================================
+// ==========================================
 // SISTEMA POS GASTRONÓMICO - CONTROL DE INVENTARIO
 // ==========================================
 
@@ -222,12 +222,20 @@ class InventoryManager {
     document.getElementById("restock-notes").value = "";
 
     const modal = document.getElementById("restock-modal");
-    modal.classList.remove("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-hidden");
+      modal.classList.remove("hidden");
+      modal.classList.add("modal-active");
+    }
   }
 
   closeRestockModal() {
     const modal = document.getElementById("restock-modal");
-    modal.classList.add("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-active");
+      modal.classList.add("modal-hidden");
+      modal.classList.add("hidden");
+    }
   }
 
   saveRestock() {
@@ -291,7 +299,11 @@ class InventoryManager {
       document.getElementById("inv-form-supplier").value = "";
     }
 
-    modal.classList.remove("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-hidden");
+      modal.classList.remove("hidden");
+      modal.classList.add("modal-active");
+    }
   }
 
   openEditModal(itemId) {
@@ -300,7 +312,11 @@ class InventoryManager {
 
   closeItemModal() {
     const modal = document.getElementById("item-modal");
-    modal.classList.add("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-active");
+      modal.classList.add("modal-hidden");
+      modal.classList.add("hidden");
+    }
     this.editingItemId = null;
   }
 

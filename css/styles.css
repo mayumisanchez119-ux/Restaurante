@@ -1,4 +1,4 @@
-﻿/* ==========================================
+/* ==========================================
    GASTROPOS - ESTILOS PERSONALIZADOS Y RESPONSIVOS
    ========================================== */
 
@@ -267,6 +267,27 @@ h1, h2, h3, h4, h5, h6, .brand-font {
   }
 }
 
+/* Critical Utility & Modal Display Overrides */
+.hidden, [hidden] {
+  display: none !important;
+}
+
+.modal-hidden {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  z-index: -9999 !important;
+}
+
+.modal-active {
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  z-index: 50 !important;
+}
+
 /* Modal Animations & Fullscreen Mobile */
 .modal-overlay {
   transition: opacity 0.25s ease-in-out;
@@ -274,15 +295,6 @@ h1, h2, h3, h4, h5, h6, .brand-font {
 
 .modal-container {
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
-}
-
-.modal-hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.modal-hidden .modal-container {
-  transform: scale(0.95) translateY(10px);
 }
 
 @media (max-width: 640px) {
@@ -293,3 +305,4 @@ h1, h2, h3, h4, h5, h6, .brand-font {
     max-width: 100vw !important;
   }
 }
+

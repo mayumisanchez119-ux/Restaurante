@@ -161,15 +161,27 @@ class POSManager {
     this.showMobileOrderTab('catalog');
 
     const modal = document.getElementById("table-order-modal");
-    modal.classList.remove("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-hidden");
+      modal.classList.remove("hidden");
+      modal.classList.add("modal-active");
+    }
     document.body.style.overflow = "hidden";
   }
 
   closeTableModal() {
     const modal = document.getElementById("table-order-modal");
-    modal.classList.add("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-active");
+      modal.classList.add("modal-hidden");
+      modal.classList.add("hidden");
+    }
     document.body.style.overflow = "auto";
     this.activeTableId = null;
+  }
+
+  closeOrderModal() {
+    this.closeTableModal();
   }
 
   setCategory(category) {
@@ -544,13 +556,21 @@ class POSManager {
     this.calculateChange();
 
     const modal = document.getElementById("checkout-modal");
-    modal.classList.remove("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-hidden");
+      modal.classList.remove("hidden");
+      modal.classList.add("modal-active");
+    }
     document.body.style.overflow = "hidden";
   }
 
   closeCheckoutModal() {
     const modal = document.getElementById("checkout-modal");
-    modal.classList.add("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-active");
+      modal.classList.add("modal-hidden");
+      modal.classList.add("hidden");
+    }
     document.body.style.overflow = "auto";
   }
 
@@ -725,7 +745,11 @@ class POSManager {
       </div>
     `;
 
-    modal.classList.remove("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-hidden");
+      modal.classList.remove("hidden");
+      modal.classList.add("modal-active");
+    }
 
     if (autoPrint) {
       setTimeout(() => {
@@ -736,7 +760,11 @@ class POSManager {
 
   closeReceiptModal() {
     const modal = document.getElementById("receipt-modal");
-    modal.classList.add("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-active");
+      modal.classList.add("modal-hidden");
+      modal.classList.add("hidden");
+    }
   }
 }
 

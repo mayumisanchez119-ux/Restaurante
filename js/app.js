@@ -14,13 +14,14 @@ class AppController {
     this.setupNavigation();
     this.setupClock();
     this.setupAuthPortal();
-    this.checkAuth();
 
     if (window.pos) window.pos.init();
     if (window.inventory) window.inventory.init();
     if (window.reports) window.reports.init();
     if (window.waitstaff) window.waitstaff.init();
     if (window.menu) window.menu.init();
+
+    this.checkAuth();
   }
 
   // ==========================================
@@ -83,8 +84,14 @@ class AppController {
     if (!session) {
       this.currentRole = null;
       this.currentUser = null;
-      if (portal) portal.classList.remove("hidden");
-      if (appWrapper) appWrapper.classList.add("hidden");
+      if (portal) {
+        portal.classList.remove("hidden");
+        portal.classList.remove("modal-hidden");
+        portal.classList.add("flex");
+      }
+      if (appWrapper) {
+        appWrapper.classList.add("hidden");
+      }
       this.renderWaitstaffChips();
       return false;
     }
@@ -92,8 +99,15 @@ class AppController {
     this.currentRole = session.role;
     this.currentUser = session.name;
 
-    if (portal) portal.classList.add("hidden");
-    if (appWrapper) appWrapper.classList.remove("hidden");
+    if (portal) {
+      portal.classList.add("hidden");
+      portal.classList.add("modal-hidden");
+      portal.classList.remove("flex");
+    }
+    if (appWrapper) {
+      appWrapper.classList.remove("hidden");
+      appWrapper.classList.add("flex");
+    }
 
     this.applyRolePermissions(session.role, session.name);
     this.updateHeaderBrand();
@@ -615,11 +629,29 @@ class AppController {
     }
 
     modal.classList.remove("modal-hidden");
+    modal.classList.remove("hidden");
+    modal.classList.add("modal-active");
   }
 
   closeEditWaitstaffModal() {
     const modal = document.getElementById("staff-manager-modal");
-    if (modal) modal.classList.add("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-active");
+      modal.classList.add("modal-hidden");
+      modal.classList.add("hidden");
+    }
+  }
+
+  openStaffModal(id = null) {
+    this.openEditWaitstaffModal(id);
+  }
+
+  closeStaffModal() {
+    this.closeEditWaitstaffModal();
+  }
+
+  saveStaffMember() {
+    this.saveWaitstaffFromSettings();
   }
 
   saveWaitstaffFromSettings() {

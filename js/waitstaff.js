@@ -1,4 +1,4 @@
-﻿// ==========================================
+// ==========================================
 // SISTEMA POS GASTRONÓMICO - RENDIMIENTO DE MESERAS Y PERSONAL
 // ==========================================
 
@@ -440,16 +440,25 @@ class WaitstaffManager {
   }
 
   openAddStaffModal() {
-    const modal = document.getElementById("add-staff-modal");
+    if (window.app && window.app.openStaffModal) {
+      window.app.openStaffModal();
+      return;
+    }
+    const modal = document.getElementById("staff-manager-modal") || document.getElementById("add-staff-modal");
     if (modal) {
-      document.getElementById("new-staff-name").value = "";
       modal.classList.remove("modal-hidden");
+      modal.classList.remove("hidden");
+      modal.classList.add("modal-active");
     }
   }
 
   closeAddStaffModal() {
-    const modal = document.getElementById("add-staff-modal");
-    if (modal) modal.classList.add("modal-hidden");
+    const modal = document.getElementById("staff-manager-modal") || document.getElementById("add-staff-modal");
+    if (modal) {
+      modal.classList.remove("modal-active");
+      modal.classList.add("modal-hidden");
+      modal.classList.add("hidden");
+    }
   }
 
   saveNewStaff() {
@@ -487,6 +496,10 @@ class WaitstaffManager {
     document.body.removeChild(link);
 
     window.app.showToast("Reporte de meseras exportado a CSV exitosamente", "success");
+  }
+
+  exportWaitstaffCSV() {
+    this.exportCSV();
   }
 }
 

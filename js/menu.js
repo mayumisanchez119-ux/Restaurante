@@ -1,4 +1,4 @@
-﻿// ==========================================
+// ==========================================
 // SISTEMA POS GASTRONÓMICO - CATÁLOGO DE PRODUCTOS
 // ==========================================
 
@@ -123,7 +123,11 @@ class MenuManager {
       document.getElementById("prod-form-desc").value = "";
     }
 
-    modal.classList.remove("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-hidden");
+      modal.classList.remove("hidden");
+      modal.classList.add("modal-active");
+    }
   }
 
   openEditProductModal(productId) {
@@ -132,7 +136,11 @@ class MenuManager {
 
   closeProductModal() {
     const modal = document.getElementById("product-modal");
-    modal.classList.add("modal-hidden");
+    if (modal) {
+      modal.classList.remove("modal-active");
+      modal.classList.add("modal-hidden");
+      modal.classList.add("hidden");
+    }
     this.editingProductId = null;
   }
 
