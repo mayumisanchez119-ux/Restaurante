@@ -625,3 +625,5 @@ class DataStore {
 }
 
 window.db = new DataStore();
+window.data = window.db;
+window.db.resetToDefault = function() { window.db.resetToDefaults(); };

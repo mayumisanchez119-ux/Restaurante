@@ -245,6 +245,24 @@ class AppController {
         waiterBanner.classList.add("hidden");
       }
     }
+
+    // 4. Botones de acción dentro del modal de comanda
+    const actionsAdmin = document.getElementById("order-actions-admin");
+    const actionsWaiter = document.getElementById("order-actions-waiter");
+    if (actionsAdmin && actionsWaiter) {
+      if (role === "waiter") {
+        actionsAdmin.classList.add("hidden");
+        actionsWaiter.classList.remove("hidden");
+      } else {
+        actionsAdmin.classList.remove("hidden");
+        actionsWaiter.classList.add("hidden");
+      }
+    }
+
+    // 5. Refrescar salón de mesas para reflejar botones de rol
+    if (window.pos && window.pos.renderTablesGrid) {
+      window.pos.renderTablesGrid();
+    }
   }
 
   // ==========================================

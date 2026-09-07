@@ -268,7 +268,7 @@ h1, h2, h3, h4, h5, h6, .brand-font {
 }
 
 /* Critical Utility & Modal Display Overrides */
-.hidden, [hidden] {
+[hidden] {
   display: none !important;
 }
 
@@ -295,6 +295,15 @@ h1, h2, h3, h4, h5, h6, .brand-font {
 
 .modal-container {
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
+
+@media (min-width: 768px) {
+  #pos-modal-catalog-col {
+    display: flex !important;
+  }
+  #pos-modal-order-col {
+    display: flex !important;
+  }
 }
 
 @media (max-width: 640px) {

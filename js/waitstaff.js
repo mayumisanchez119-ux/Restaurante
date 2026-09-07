@@ -4,7 +4,7 @@
 
 class WaitstaffManager {
   constructor() {
-    this.currentPeriod = "dia"; // 'dia' | 'semana' | 'mes' | 'todos'
+    this.currentPeriod = "hoy"; // 'hoy' | 'ayer' | 'semana' | 'mes' | 'todo'
     this.selectedDate = new Date();
     this.selectedWaiterFilter = "todos";
     this.salesChart = null;
@@ -28,9 +28,7 @@ class WaitstaffManager {
     if (datePicker) {
       datePicker.addEventListener("change", (e) => {
         if (e.target.value) {
-          const parts = e.target.value.split("-");
-          this.selectedDate = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
-          this.refreshData();
+          this.setCustomDate(e.target.value);
         }
       });
     }
@@ -51,28 +49,52 @@ class WaitstaffManager {
     return `${y}-${m}-${d}`;
   }
 
+  setCustomDate(val) {
+    if (!val) return;
+    const parts = val.split("-");
+    this.selectedDate = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+    this.currentPeriod = "custom";
+    this.updatePeriodButtonsUI();
+    this.refreshData();
+  }
+
   setPeriod(period) {
     this.currentPeriod = period;
+    if (period === "hoy" || period === "dia") {
+      this.selectedDate = new Date();
+    } else if (period === "ayer") {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      this.selectedDate = yesterday;
+    }
+    this.updatePeriodButtonsUI();
+    this.refreshData();
+  }
 
-    ["dia", "semana", "mes", "todos"].forEach(p => {
+  updatePeriodButtonsUI() {
+    const periods = ["hoy", "ayer", "semana", "mes", "todo"];
+    periods.forEach(p => {
       const btn = document.getElementById(`ws-period-btn-${p}`);
       if (btn) {
-        if (p === period) {
-          btn.className = "px-4 py-2 text-xs font-bold rounded-xl bg-amber-600 text-white shadow-md shadow-amber-600/20 flex items-center gap-1.5 transition-all";
+        if (p === this.currentPeriod) {
+          btn.className = "px-2.5 py-1.5 rounded-lg font-bold bg-amber-600 text-white shadow-xs transition-all";
         } else {
-          btn.className = "px-4 py-2 text-xs font-bold rounded-xl bg-white text-slate-700 hover:bg-amber-50 border border-slate-200 flex items-center gap-1.5 transition-all";
+          btn.className = "px-2.5 py-1.5 rounded-lg font-bold text-slate-600 hover:bg-slate-200 transition-all";
         }
       }
     });
 
-    this.refreshData();
+    const datePicker = document.getElementById("waitstaff-date-picker");
+    if (datePicker && this.currentPeriod !== "custom") {
+      datePicker.value = this.formatDateForInput(this.selectedDate);
+    }
   }
 
   getFilteredSales() {
     const allSales = window.db.getSales();
     const sel = new Date(this.selectedDate);
 
-    if (this.currentPeriod === "dia") {
+    if (this.currentPeriod === "hoy" || this.currentPeriod === "dia" || this.currentPeriod === "custom") {
       const startOfDay = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate(), 0, 0, 0);
       const endOfDay = new Date(sel.getFullYear(), sel.getMonth(), sel.getDate(), 23, 59, 59);
 
@@ -81,10 +103,22 @@ class WaitstaffManager {
         return d >= startOfDay && d <= endOfDay;
       });
     } 
+    else if (this.currentPeriod === "ayer") {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const startOfDay = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0);
+      const endOfDay = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+
+      return allSales.filter(s => {
+        const d = new Date(s.date);
+        return d >= startOfDay && d <= endOfDay;
+      });
+    }
     else if (this.currentPeriod === "semana") {
       const day = sel.getDay();
       const diff = sel.getDate() - day + (day === 0 ? -6 : 1);
-      const startOfWeek = new Date(sel.setDate(diff));
+      const startOfWeek = new Date(sel);
+      startOfWeek.setDate(diff);
       startOfWeek.setHours(0, 0, 0, 0);
 
       const endOfWeek = new Date(startOfWeek);
@@ -106,7 +140,7 @@ class WaitstaffManager {
       });
     }
 
-    return allSales;
+    return allSales; // 'todo' | 'todos'
   }
 
   calculateWaitstaffStats(sales) {
@@ -169,14 +203,18 @@ class WaitstaffManager {
     const sel = this.selectedDate;
     const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-    if (this.currentPeriod === "dia") {
-      descEl.textContent = `Rendimiento del día ${sel.getDate()} de ${months[sel.getMonth()]} de ${sel.getFullYear()}`;
+    if (this.currentPeriod === "hoy") {
+      descEl.textContent = `Rendimiento de meseras de hoy (${sel.getDate()} de ${months[sel.getMonth()]})`;
+    } else if (this.currentPeriod === "ayer") {
+      descEl.textContent = `Rendimiento de meseras del día de ayer`;
     } else if (this.currentPeriod === "semana") {
-      descEl.textContent = `Rendimiento de la semana del ${sel.getDate()} de ${months[sel.getMonth()]}`;
+      descEl.textContent = `Rendimiento semanal acumulado`;
     } else if (this.currentPeriod === "mes") {
       descEl.textContent = `Rendimiento mensual de ${months[sel.getMonth()]} de ${sel.getFullYear()}`;
+    } else if (this.currentPeriod === "todo") {
+      descEl.textContent = `Rendimiento histórico consolidado (todas las ventas)`;
     } else {
-      descEl.textContent = `Rendimiento histórico acumulado de todas las ventas`;
+      descEl.textContent = `Rendimiento del día ${sel.getDate()} de ${months[sel.getMonth()]} de ${sel.getFullYear()}`;
     }
   }
 
@@ -192,10 +230,10 @@ class WaitstaffManager {
     const totalTipsEl = document.getElementById("ws-kpi-total-tips");
 
     if (topSellerEl) {
-      topSellerEl.textContent = topSeller ? `${topSeller.name} (${window.app.formatMoney(topSeller.totalSales)})` : "Sin ventas aún";
+      topSellerEl.textContent = topSeller ? `${topSeller.name}` : "Sin ventas aún";
     }
     if (totalMoneyEl) totalMoneyEl.textContent = window.app.formatMoney(totalMoney);
-    if (totalQtyEl) totalQtyEl.textContent = `${totalQty} platos/bebidas`;
+    if (totalQtyEl) totalQtyEl.textContent = `${totalQty}`;
     if (totalTipsEl) totalTipsEl.textContent = window.app.formatMoney(totalTips);
   }
 
@@ -210,52 +248,52 @@ class WaitstaffManager {
       const medal = index === 0 && staff.totalSales > 0 ? "🥇" : index === 1 && staff.totalSales > 0 ? "🥈" : index === 2 && staff.totalSales > 0 ? "🥉" : `#${index + 1}`;
       
       return `
-        <div class="bg-white rounded-2xl p-5 border border-amber-200/80 shadow-xs flex flex-col justify-between hover:border-amber-400 hover:shadow-md transition-all">
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-amber-200/80 shadow-xs flex flex-col justify-between hover:border-amber-400 hover:shadow-md transition-all">
           <div>
             <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-900 flex items-center justify-center text-xl font-bold border border-amber-200 shadow-xs">
+              <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-900 flex items-center justify-center text-lg font-bold border border-amber-200 shadow-xs">
                   👩‍🍳
                 </div>
                 <div>
-                  <h4 class="font-black text-slate-900 text-base leading-tight">${staff.name}</h4>
+                  <h4 class="font-black text-slate-900 text-sm sm:text-base leading-tight">${staff.name}</h4>
                   <span class="text-xs font-bold text-amber-700">Mesera / Personal</span>
                 </div>
               </div>
-              <span class="text-xl font-black">${medal}</span>
+              <span class="text-lg font-black">${medal}</span>
             </div>
 
             <!-- Main Metrics -->
-            <div class="grid grid-cols-2 gap-2 my-3">
-              <div class="p-3 rounded-xl bg-amber-50/70 border border-amber-100">
-                <span class="text-[10px] font-bold text-amber-900 uppercase tracking-wider block">Dinero Atendido ($)</span>
-                <span class="text-base font-black text-slate-900">${window.app.formatMoney(staff.totalSales)}</span>
+            <div class="grid grid-cols-2 gap-2 my-2.5">
+              <div class="p-2.5 rounded-xl bg-amber-50/70 border border-amber-100">
+                <span class="text-[10px] font-bold text-amber-900 uppercase tracking-wider block">Total Ventas ($)</span>
+                <span class="text-sm sm:text-base font-black text-slate-900">${window.app.formatMoney(staff.totalSales)}</span>
               </div>
-              <div class="p-3 rounded-xl bg-rose-50/70 border border-rose-100">
-                <span class="text-[10px] font-bold text-rose-900 uppercase tracking-wider block">Platos / Unidades</span>
-                <span class="text-base font-black text-rose-900">${staff.totalItemsCount} unds</span>
+              <div class="p-2.5 rounded-xl bg-rose-50/70 border border-rose-100">
+                <span class="text-[10px] font-bold text-rose-900 uppercase tracking-wider block">Platos Servidos</span>
+                <span class="text-sm sm:text-base font-black text-rose-900">${staff.totalItemsCount} unds</span>
               </div>
             </div>
 
             <!-- Secondary Metrics -->
-            <div class="space-y-1.5 text-xs text-slate-600 pt-1">
+            <div class="space-y-1 text-xs text-slate-600 pt-1">
               <div class="flex justify-between">
-                <span>Cuentas / Mesas atendidas:</span>
-                <b class="text-slate-800">${staff.ordersCount} mesas</b>
+                <span>Comandas cobradas:</span>
+                <b class="text-slate-800">${staff.ordersCount}</b>
               </div>
               <div class="flex justify-between">
-                <span>Ticket promedio por mesa:</span>
+                <span>Ticket promedio:</span>
                 <b class="text-slate-800">${window.app.formatMoney(staff.avgTicket)}</b>
               </div>
               <div class="flex justify-between">
-                <span>Propinas generadas:</span>
+                <span>Propinas acumuladas:</span>
                 <b class="text-emerald-700">${window.app.formatMoney(staff.totalTips)}</b>
               </div>
             </div>
 
-            <div class="mt-3">
+            <div class="mt-2.5">
               <div class="flex justify-between text-[11px] font-bold text-slate-500 mb-1">
-                <span>Participación en ventas</span>
+                <span>Participación</span>
                 <span>${percent}%</span>
               </div>
               <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
@@ -264,9 +302,9 @@ class WaitstaffManager {
             </div>
           </div>
 
-          <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+          <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
             <button onclick="window.waitstaff.filterByWaiter('${staff.name}')" class="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1">
-              <span>Ver pedidos detallados</span>
+              <span>Ver comandas</span>
               <i class="fas fa-arrow-right text-[10px]"></i>
             </button>
           </div>
@@ -281,7 +319,6 @@ class WaitstaffManager {
     if (select) select.value = waiterName;
     this.renderDetailTable();
     
-    // Smooth scroll down to table
     const tableSection = document.getElementById("waitstaff-detail-table-card");
     if (tableSection) {
       tableSection.scrollIntoView({ behavior: 'smooth' });
@@ -294,7 +331,7 @@ class WaitstaffManager {
 
     const list = window.db.getWaitstaff();
     select.innerHTML = `
-      <option value="todos">Todos los meseros(as)</option>
+      <option value="todos">Ver todas las meseras</option>
       ${list.map(name => `<option value="${name}" ${this.selectedWaiterFilter === name ? 'selected' : ''}>${name}</option>`).join("")}
     `;
   }
@@ -381,6 +418,10 @@ class WaitstaffManager {
     }
   }
 
+  renderWaitstaffTable(sales = null) {
+    this.renderDetailTable(sales);
+  }
+
   renderDetailTable(sales = null) {
     const tbody = document.getElementById("waitstaff-sales-tbody");
     if (!tbody) return;
@@ -414,67 +455,25 @@ class WaitstaffManager {
 
       return `
         <tr class="hover:bg-amber-50/40 text-xs border-b border-amber-100/60 transition-colors">
-          <td class="py-3 px-4 font-mono font-bold text-amber-900">${sale.id}</td>
-          <td class="py-3 px-4 text-slate-600 font-medium whitespace-nowrap">${dateFormatted}</td>
-          <td class="py-3 px-4">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100/80 text-amber-900 font-extrabold text-xs">
-              <i class="fas fa-user-tie text-[10px]"></i> ${sale.waiter || 'Sin asignar'}
+          <td class="py-3 px-3 font-mono font-bold text-slate-600 whitespace-nowrap">${dateFormatted}</td>
+          <td class="py-3 px-3">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-100/80 text-amber-900 font-extrabold text-xs">
+              👩‍🍳 ${sale.waiter || 'Sin asignar'}
             </span>
           </td>
-          <td class="py-3 px-4 font-bold text-slate-800">${sale.tableName}</td>
-          <td class="py-3 px-4">
+          <td class="py-3 px-3 font-bold text-slate-800">${sale.tableName}</td>
+          <td class="py-3 px-3">
             <div class="max-w-xs truncate text-slate-700 font-medium" title="${itemsSummary}">${itemsSummary}</div>
-            <div class="text-[10px] text-rose-700 font-bold">${sale.totalItemsCount} productos servidos</div>
+            <div class="text-[10px] text-rose-700 font-bold">${sale.totalItemsCount} productos</div>
           </td>
-          <td class="py-3 px-4 font-extrabold text-slate-900 text-sm whitespace-nowrap">
+          <td class="py-3 px-3 text-slate-600 font-semibold">${window.app.formatMoney(sale.subtotal)}</td>
+          <td class="py-3 px-3 text-emerald-700 font-semibold">${window.app.formatMoney(sale.tipAmount)}</td>
+          <td class="py-3 px-3 font-extrabold text-slate-900 text-sm text-right whitespace-nowrap">
             ${window.app.formatMoney(sale.total)}
-          </td>
-          <td class="py-3 px-4 text-right whitespace-nowrap">
-            <button onclick="window.reports.viewReceipt('${sale.id}')" title="Ver Recibo" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold rounded-lg border border-amber-200 text-xs flex items-center gap-1 ml-auto">
-              <i class="fas fa-print text-[10px]"></i> Ver Ticket
-            </button>
           </td>
         </tr>
       `;
     }).join("");
-  }
-
-  openAddStaffModal() {
-    if (window.app && window.app.openStaffModal) {
-      window.app.openStaffModal();
-      return;
-    }
-    const modal = document.getElementById("staff-manager-modal") || document.getElementById("add-staff-modal");
-    if (modal) {
-      modal.classList.remove("modal-hidden");
-      modal.classList.remove("hidden");
-      modal.classList.add("modal-active");
-    }
-  }
-
-  closeAddStaffModal() {
-    const modal = document.getElementById("staff-manager-modal") || document.getElementById("add-staff-modal");
-    if (modal) {
-      modal.classList.remove("modal-active");
-      modal.classList.add("modal-hidden");
-      modal.classList.add("hidden");
-    }
-  }
-
-  saveNewStaff() {
-    const nameInput = document.getElementById("new-staff-name");
-    const name = nameInput ? nameInput.value.trim() : "";
-
-    if (!name) {
-      window.app.showToast("Ingresa el nombre del mesero(a)", "warning");
-      return;
-    }
-
-    window.db.addWaitstaff(name);
-    window.app.showToast(`¡Mesero(a) "${name}" registrado(a) con éxito!`, "success");
-    window.app.renderWaitstaffChips();
-    this.closeAddStaffModal();
-    this.refreshData();
   }
 
   exportCSV() {

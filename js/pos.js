@@ -32,6 +32,13 @@ class POSManager {
         this.calculateChange();
       });
     }
+
+    window.addEventListener("resize", () => {
+      const modal = document.getElementById("table-order-modal");
+      if (modal && modal.classList.contains("modal-active")) {
+        this.showMobileOrderTab("catalog");
+      }
+    });
   }
 
   renderTablesGrid() {
@@ -93,9 +100,11 @@ class POSManager {
       const isDelivery = table.location.includes("Rappi") || table.location.includes("Mostrador") || table.location.includes("Domicilio");
       const icon = isDelivery ? "fa-motorcycle" : "fa-chair";
 
+      const isAdmin = window.app && window.app.currentRole === "admin";
+
       return `
         <div onclick="window.pos.openTableModal(${table.id})" 
-             class="table-card ${statusClass} bg-white rounded-2xl p-4 shadow-sm border border-amber-100/80 cursor-pointer flex flex-col justify-between hover:border-amber-400">
+             class="table-card ${statusClass} bg-white rounded-2xl p-4 shadow-sm border border-amber-100/80 cursor-pointer flex flex-col justify-between hover:border-amber-400 transition-all">
           <div>
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
@@ -117,9 +126,9 @@ class POSManager {
               <span>${table.status === 'libre' ? 'Tomar Pedido' : 'Ver / Editar Pedido'}</span>
               <i class="fas fa-arrow-right text-[10px]"></i>
             </span>
-            ${table.status !== 'libre' ? `
+            ${(table.status !== 'libre' && isAdmin) ? `
               <button onclick="event.stopPropagation(); window.pos.openCheckoutModal(${table.id})" 
-                      class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1">
+                      class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shadow-sm flex items-center gap-1 transition-colors">
                 <i class="fas fa-cash-register text-[10px]"></i> Cobrar
               </button>
             ` : ''}
@@ -153,7 +162,27 @@ class POSManager {
     const defaultWaiter = (window.app && window.app.currentUser && window.app.currentRole === "waiter") 
       ? window.app.currentUser 
       : (table.waiter || (window.app && window.app.currentUser) || "Mesero");
-    document.getElementById("modal-waiter-input").value = defaultWaiter;
+    const waiterInput = document.getElementById("modal-waiter-input");
+    if (waiterInput) waiterInput.value = defaultWaiter;
+
+    const titleEl = document.getElementById("order-modal-title");
+    const subtitleEl = document.getElementById("order-modal-subtitle");
+    if (titleEl) titleEl.textContent = `${table.name}`;
+    if (subtitleEl) subtitleEl.textContent = `${table.location} • Estado: ${table.status.toUpperCase()}`;
+
+    // Configurar botones de acción según el rol
+    const isAdmin = window.app && window.app.currentRole === "admin";
+    const actionsAdmin = document.getElementById("order-actions-admin");
+    const actionsWaiter = document.getElementById("order-actions-waiter");
+    if (actionsAdmin && actionsWaiter) {
+      if (isAdmin) {
+        actionsAdmin.classList.remove("hidden");
+        actionsWaiter.classList.add("hidden");
+      } else {
+        actionsAdmin.classList.add("hidden");
+        actionsWaiter.classList.remove("hidden");
+      }
+    }
 
     this.renderCategoryPills();
     this.renderMenuCatalog();
@@ -162,8 +191,7 @@ class POSManager {
 
     const modal = document.getElementById("table-order-modal");
     if (modal) {
-      modal.classList.remove("modal-hidden");
-      modal.classList.remove("hidden");
+      modal.classList.remove("modal-hidden", "hidden");
       modal.classList.add("modal-active");
     }
     document.body.style.overflow = "hidden";
@@ -173,11 +201,11 @@ class POSManager {
     const modal = document.getElementById("table-order-modal");
     if (modal) {
       modal.classList.remove("modal-active");
-      modal.classList.add("modal-hidden");
-      modal.classList.add("hidden");
+      modal.classList.add("modal-hidden", "hidden");
     }
     document.body.style.overflow = "auto";
     this.activeTableId = null;
+    this.currentOrderItems = [];
   }
 
   closeOrderModal() {
@@ -244,7 +272,7 @@ class POSManager {
 
     container.innerHTML = products.map(prod => `
       <div onclick="window.pos.addItemToOrder('${prod.id}')" 
-           class="product-menu-item bg-white p-3 rounded-xl border border-amber-100 shadow-sm cursor-pointer flex flex-col justify-between relative group hover:border-amber-400">
+           class="product-menu-item bg-white p-3 rounded-xl border border-amber-100 shadow-sm cursor-pointer flex flex-col justify-between relative group hover:border-amber-400 transition-all">
         <div>
           <div class="flex items-start justify-between mb-1.5">
             <span class="text-2xl">${prod.emoji || '🍽️'}</span>
@@ -308,6 +336,10 @@ class POSManager {
     this.renderOrderList();
   }
 
+  setTipPercentage(percent) {
+    this.setTipPercent(percent);
+  }
+
   renderOrderList() {
     const container = document.getElementById("pos-order-items-list");
     if (!container) return;
@@ -319,7 +351,7 @@ class POSManager {
             🍽️
           </div>
           <p class="font-bold text-slate-700 text-sm">Comanda vacía</p>
-          <p class="text-xs text-slate-400 mt-1 max-w-[200px] mx-auto">Selecciona los platos o bebidas del catálogo a la izquierda para agregarlos</p>
+          <p class="text-xs text-slate-400 mt-1 max-w-[200px] mx-auto">Selecciona los platos o bebidas del catálogo para agregarlos</p>
         </div>
       `;
       this.updateOrderSummary(0, 0, 0);
@@ -356,7 +388,7 @@ class POSManager {
             <input type="text" 
                    value="${item.notes || ''}" 
                    onchange="window.pos.updateItemNote(${idx}, this.value)" 
-                   placeholder="Instrucción (ej. Sin cebolla, Salsa aparte)..." 
+                   placeholder="Instrucción (ej. Sin cebolla)..." 
                    class="w-full text-[11px] px-2.5 py-1 bg-white rounded-lg border border-amber-200/70 focus:border-amber-500 focus:outline-none placeholder-slate-400">
           </div>
 
@@ -375,6 +407,7 @@ class POSManager {
   }
 
   showMobileOrderTab(tab) {
+    const isMobile = window.innerWidth < 768;
     const catalogCol = document.getElementById("pos-modal-catalog-col");
     const orderCol = document.getElementById("pos-modal-order-col");
     const tabBtnCatalog = document.getElementById("modal-tab-btn-catalog");
@@ -382,16 +415,28 @@ class POSManager {
 
     if (!catalogCol || !orderCol) return;
 
+    if (!isMobile) {
+      // On desktop, ensure BOTH columns are always visible side-by-side
+      catalogCol.classList.remove("hidden");
+      catalogCol.style.display = "flex";
+      orderCol.classList.remove("hidden");
+      orderCol.style.display = "flex";
+      return;
+    }
+
+    // On mobile screens (< 768px):
     if (tab === "catalog") {
       catalogCol.classList.remove("hidden");
+      catalogCol.style.display = "flex";
       orderCol.classList.add("hidden");
-      orderCol.classList.remove("flex");
+      orderCol.style.display = "none";
       if (tabBtnCatalog) tabBtnCatalog.className = "flex-1 py-2 text-center text-xs font-black rounded-xl bg-amber-600 text-white shadow-xs";
       if (tabBtnOrder) tabBtnOrder.className = "flex-1 py-2 text-center text-xs font-bold rounded-xl text-slate-600 hover:bg-slate-100";
     } else {
       catalogCol.classList.add("hidden");
+      catalogCol.style.display = "none";
       orderCol.classList.remove("hidden");
-      orderCol.classList.add("flex");
+      orderCol.style.display = "flex";
       if (tabBtnOrder) tabBtnOrder.className = "flex-1 py-2 text-center text-xs font-black rounded-xl bg-amber-600 text-white shadow-xs";
       if (tabBtnCatalog) tabBtnCatalog.className = "flex-1 py-2 text-center text-xs font-bold rounded-xl text-slate-600 hover:bg-slate-100";
     }
@@ -413,7 +458,7 @@ class POSManager {
     const totalQty = this.currentOrderItems.reduce((acc, i) => acc + i.qty, 0);
 
     if (mobileFloatBar) {
-      if (totalQty > 0) {
+      if (totalQty > 0 && window.innerWidth < 768) {
         mobileFloatBar.classList.remove("hidden");
         if (mobileFloatCount) mobileFloatCount.textContent = `${totalQty} ${totalQty === 1 ? 'ítem' : 'ítems'}`;
         if (mobileFloatTotal) mobileFloatTotal.textContent = window.app.formatMoney(total);
@@ -427,26 +472,34 @@ class POSManager {
       modalTabOrderCount.textContent = totalQty;
     }
 
-    [0, 10, 15].forEach(p => {
+    [0, 5, 10, 15].forEach(p => {
       const btn = document.getElementById(`tip-btn-${p}`);
       if (btn) {
         if (this.tipPercent === p) {
-          btn.className = "px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-600 text-white shadow-xs";
+          btn.className = "flex-1 py-1 rounded-lg bg-amber-600 text-white shadow-xs font-bold text-xs";
         } else {
-          btn.className = "px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-100/70 text-amber-900 hover:bg-amber-200";
+          btn.className = "flex-1 py-1 rounded-lg text-slate-600 font-bold text-xs hover:bg-slate-200";
         }
       }
     });
   }
 
-  saveOrderToTable() {
-    if (!this.activeTableId) return;
+  saveOrder(close = true) {
+    this.saveOrderToTable(close);
+  }
+
+  saveOrderToTable(close = true) {
+    if (!this.activeTableId) {
+      window.app.showToast("No hay una mesa seleccionada", "warning");
+      return;
+    }
 
     const tables = window.db.getTables();
     const tableIndex = tables.findIndex(t => t.id === this.activeTableId);
     if (tableIndex === -1) return;
 
-    const waiter = document.getElementById("modal-waiter-input").value.trim() || "Mesero";
+    const waiterInput = document.getElementById("modal-waiter-input");
+    const waiter = waiterInput ? waiterInput.value.trim() || "Mesero" : (tables[tableIndex].waiter || "Mesero");
 
     if (this.currentOrderItems.length === 0) {
       tables[tableIndex].status = "libre";
@@ -465,7 +518,7 @@ class POSManager {
         tables[tableIndex].openedAt = new Date().toISOString();
       }
       tables[tableIndex].order = {
-        items: this.currentOrderItems,
+        items: JSON.parse(JSON.stringify(this.currentOrderItems)),
         subtotal: subtotal,
         tipPercentage: this.tipPercent,
         tipAmount: tipAmount,
@@ -479,28 +532,45 @@ class POSManager {
 
     window.db.saveTables(tables);
     this.renderTablesGrid();
-    this.closeTableModal();
+    if (close) {
+      this.closeTableModal();
+    }
+  }
+
+  printBillPre() {
+    this.requestBillFromModal();
   }
 
   requestBillFromModal() {
-    if (!this.activeTableId || this.currentOrderItems.length === 0) {
+    if (!this.activeTableId) {
+      window.app.showToast("No hay una mesa seleccionada", "warning");
+      return;
+    }
+
+    if (this.currentOrderItems.length === 0) {
       window.app.showToast("Agrega productos antes de pedir la cuenta", "warning");
       return;
     }
 
-    this.saveOrderToTable();
+    this.saveOrderToTable(false);
     const tables = window.db.getTables();
     const table = tables.find(t => t.id === this.activeTableId);
     if (table) {
       table.status = "cuenta";
       window.db.saveTables(tables);
       this.renderTablesGrid();
-      window.app.showToast(`${table.name} marcada para cobro`, "warning");
+      window.app.showToast(`${table.name} marcada para cobro (pidió cuenta)`, "warning");
     }
   }
 
+  clearTableOrder() {
+    this.clearActiveTable();
+  }
+
   clearActiveTable() {
+    if (!this.activeTableId) return;
     if (!confirm("¿Estás seguro de cancelar el pedido y liberar esta mesa?")) return;
+
     const tables = window.db.getTables();
     const table = tables.find(t => t.id === this.activeTableId);
     if (table) {
@@ -519,35 +589,84 @@ class POSManager {
   // MÓDULO DE COBRO Y FACTURACIÓN
   // ==========================================
 
-  openCheckoutModal(tableId) {
-    this.activeTableId = tableId;
+  openCheckoutModal(tableId = null) {
+    if (window.app && window.app.currentRole === "waiter") {
+      window.app.showToast("Acceso restringido: Solo la administradora puede realizar cobros y facturación.", "warning");
+      return;
+    }
+
+    const targetTableId = (tableId !== null && tableId !== undefined) ? tableId : this.activeTableId;
+    if (!targetTableId) {
+      window.app.showToast("No hay una mesa seleccionada para cobrar", "warning");
+      return;
+    }
+
+    this.activeTableId = targetTableId;
     const tables = window.db.getTables();
-    const table = tables.find(t => t.id === tableId);
-    if (!table || !table.order || !table.order.items || table.order.items.length === 0) {
+    const table = tables.find(t => t.id === targetTableId);
+    if (!table) return;
+
+    // Si hay productos en la comanda actual pero no se habían guardado, guardarlos automáticamente
+    if (this.currentOrderItems && this.currentOrderItems.length > 0) {
+      const waiterInput = document.getElementById("modal-waiter-input");
+      const waiter = (waiterInput && waiterInput.value.trim()) ? waiterInput.value.trim() : (table.waiter || "Mesero");
+      const subtotal = this.currentOrderItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
+      const tipAmount = Math.round(subtotal * (this.tipPercent / 100));
+      const total = subtotal + tipAmount;
+
+      table.status = "cuenta";
+      table.waiter = waiter;
+      if (!table.openedAt) table.openedAt = new Date().toISOString();
+      table.order = {
+        items: JSON.parse(JSON.stringify(this.currentOrderItems)),
+        subtotal: subtotal,
+        tipPercentage: this.tipPercent,
+        tipAmount: tipAmount,
+        tax: 0,
+        total: total
+      };
+      window.db.saveTables(tables);
+      this.renderTablesGrid();
+    }
+
+    if (!table.order || !table.order.items || table.order.items.length === 0) {
       window.app.showToast("La mesa no tiene productos para cobrar", "warning");
       return;
     }
 
     const order = table.order;
 
-    document.getElementById("pay-modal-title").textContent = `Cobrar Cuenta - ${table.name}`;
-    document.getElementById("pay-modal-subtitle").textContent = `Atendido por: ${table.waiter || 'Mesero'} • ${order.items.length} ítems`;
+    // Cerrar el modal de pedido sin borrar activeTableId
+    const orderModal = document.getElementById("table-order-modal");
+    if (orderModal) {
+      orderModal.classList.remove("modal-active");
+      orderModal.classList.add("modal-hidden", "hidden");
+    }
+
+    const titleEl = document.getElementById("pay-modal-title");
+    const subEl = document.getElementById("pay-modal-subtitle");
+    if (titleEl) titleEl.textContent = `Cobrar Cuenta - ${table.name}`;
+    if (subEl) subEl.textContent = `Atendido por: ${table.waiter || 'Mesero'} • ${order.items.length} ítems`;
 
     const breakdownContainer = document.getElementById("pay-order-breakdown");
     if (breakdownContainer) {
       breakdownContainer.innerHTML = order.items.map(i => `
-        <div class="flex justify-between items-center text-xs py-1 border-b border-amber-100/60">
+        <div class="flex justify-between items-center text-xs py-1.5 border-b border-amber-100/60">
           <span class="text-slate-700"><b class="text-amber-800">${i.qty}x</b> ${i.name}</span>
           <span class="font-bold text-slate-800">${window.app.formatMoney(i.price * i.qty)}</span>
         </div>
       `).join("");
     }
 
-    document.getElementById("pay-subtotal-val").textContent = window.app.formatMoney(order.subtotal);
-    document.getElementById("pay-tip-val").textContent = window.app.formatMoney(order.tipAmount || 0);
-    document.getElementById("pay-total-val").textContent = window.app.formatMoney(order.total);
+    const subtotalEl = document.getElementById("pay-subtotal-val");
+    const tipEl = document.getElementById("pay-tip-val");
+    const totalEl = document.getElementById("pay-total-val");
 
-    this.selectPaymentMethod("Efectivo");
+    if (subtotalEl) subtotalEl.textContent = window.app.formatMoney(order.subtotal);
+    if (tipEl) tipEl.textContent = window.app.formatMoney(order.tipAmount || 0);
+    if (totalEl) totalEl.textContent = window.app.formatMoney(order.total);
+
+    this.selectPaymentMethod("efectivo");
 
     const receivedInput = document.getElementById("pay-amount-received");
     if (receivedInput) {
@@ -557,8 +676,7 @@ class POSManager {
 
     const modal = document.getElementById("checkout-modal");
     if (modal) {
-      modal.classList.remove("modal-hidden");
-      modal.classList.remove("hidden");
+      modal.classList.remove("modal-hidden", "hidden");
       modal.classList.add("modal-active");
     }
     document.body.style.overflow = "hidden";
@@ -568,34 +686,35 @@ class POSManager {
     const modal = document.getElementById("checkout-modal");
     if (modal) {
       modal.classList.remove("modal-active");
-      modal.classList.add("modal-hidden");
-      modal.classList.add("hidden");
+      modal.classList.add("modal-hidden", "hidden");
     }
     document.body.style.overflow = "auto";
   }
 
+  setPaymentMethod(method) {
+    this.selectPaymentMethod(method);
+  }
+
   selectPaymentMethod(method) {
-    this.selectedPaymentMethod = method;
-    const methods = ["Efectivo", "Nequi", "Daviplata", "Tarjeta", "Transferencia"];
+    const mLower = (method || "efectivo").toLowerCase();
+    this.selectedPaymentMethod = mLower.charAt(0).toUpperCase() + mLower.slice(1);
+
+    const methods = ["efectivo", "tarjeta", "transferencia"];
     
     methods.forEach(m => {
       const btn = document.getElementById(`pay-method-${m}`);
       if (btn) {
-        if (m === method) {
-          btn.className = "p-3 rounded-xl border-2 border-amber-600 bg-amber-50 font-bold text-amber-900 text-xs flex flex-col items-center gap-1 shadow-sm";
+        if (m === mLower) {
+          btn.className = "py-2 px-1 rounded-xl text-xs font-black bg-emerald-600 text-white shadow-sm flex flex-col items-center gap-1 transition-all";
         } else {
-          btn.className = "p-3 rounded-xl border border-slate-200 hover:border-amber-300 font-medium text-slate-700 text-xs flex flex-col items-center gap-1";
+          btn.className = "py-2 px-1 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex flex-col items-center gap-1 transition-all";
         }
       }
     });
 
     const cashCalcBox = document.getElementById("pay-cash-calculator");
     if (cashCalcBox) {
-      if (method === "Efectivo") {
-        cashCalcBox.style.display = "block";
-      } else {
-        cashCalcBox.style.display = "none";
-      }
+      cashCalcBox.style.display = (mLower === "efectivo") ? "block" : "none";
     }
   }
 
@@ -607,26 +726,36 @@ class POSManager {
     const total = table.order.total;
     const receivedInput = document.getElementById("pay-amount-received");
     const changeVal = document.getElementById("pay-change-val");
+    if (!receivedInput || !changeVal) return;
 
     const received = parseFloat(receivedInput.value) || 0;
     const change = received - total;
 
     if (change >= 0) {
       changeVal.textContent = window.app.formatMoney(change);
-      changeVal.className = "text-base font-extrabold text-emerald-700";
+      changeVal.className = "text-sm font-extrabold text-emerald-700";
     } else {
       changeVal.textContent = `Faltan ${window.app.formatMoney(Math.abs(change))}`;
       changeVal.className = "text-xs font-bold text-rose-600";
     }
   }
 
+  finalizePayment() {
+    this.processPayment(false);
+  }
+
   processPayment(andPrint = false) {
     const tables = window.db.getTables();
     const table = tables.find(t => t.id === this.activeTableId);
-    if (!table || !table.order) return;
+    if (!table || !table.order) {
+      window.app.showToast("No se encontró el pedido de la mesa", "error");
+      return;
+    }
 
-    const customerName = document.getElementById("pay-customer-name").value.trim() || "Cliente Ocasional";
-    const customerDoc = document.getElementById("pay-customer-doc").value.trim() || "222222222222";
+    const nameInput = document.getElementById("pay-customer-name");
+    const docInput = document.getElementById("pay-customer-doc");
+    const customerName = nameInput && nameInput.value.trim() ? nameInput.value.trim() : "Cliente Ocasional";
+    const customerDoc = docInput && docInput.value.trim() ? docInput.value.trim() : "222222222222";
 
     const saleRecord = {
       id: `FAC-${Date.now().toString().slice(-6)}`,
@@ -634,7 +763,7 @@ class POSManager {
       tableId: table.id,
       tableName: table.name,
       waiter: table.waiter || "Mesero General",
-      items: table.order.items,
+      items: JSON.parse(JSON.stringify(table.order.items)),
       totalItemsCount: table.order.items.reduce((acc, i) => acc + i.qty, 0),
       subtotal: table.order.subtotal,
       tipPercentage: table.order.tipPercentage || 0,
@@ -660,11 +789,10 @@ class POSManager {
 
     this.renderTablesGrid();
     this.closeCheckoutModal();
-    if (this.activeTableId) {
-      this.closeTableModal();
-    }
+    this.closeTableModal();
 
     if (window.reports) window.reports.refreshData();
+    if (window.waitstaff) window.waitstaff.refreshData();
     if (window.inventory) window.inventory.renderInventoryTable();
     window.app.updateHeaderStats();
 
@@ -746,8 +874,7 @@ class POSManager {
     `;
 
     if (modal) {
-      modal.classList.remove("modal-hidden");
-      modal.classList.remove("hidden");
+      modal.classList.remove("modal-hidden", "hidden");
       modal.classList.add("modal-active");
     }
 
@@ -762,8 +889,7 @@ class POSManager {
     const modal = document.getElementById("receipt-modal");
     if (modal) {
       modal.classList.remove("modal-active");
-      modal.classList.add("modal-hidden");
-      modal.classList.add("hidden");
+      modal.classList.add("modal-hidden", "hidden");
     }
   }
 }
